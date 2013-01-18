@@ -48,6 +48,7 @@ public:
     ~CodeGenerator();
     void generate();
     void dump();
+    void runJIT();
 private:
     C2Sema& sema;
     llvm::LLVMContext& context;

@@ -28,6 +28,12 @@
 #include <llvm/Support/ToolOutputFile.h>
 // for WriteBitcodeToFile
 #include <llvm/Bitcode/ReaderWriter.h>
+// For JIT:
+#include <llvm/Analysis/Verifier.h>
+#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/ExecutionEngine/Interpreter.h>
+#include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/Support/TargetSelect.h>
 
 #include "CodeGenerator.h"
 #include "C2Sema.h"
@@ -42,6 +48,7 @@ CodeGenerator::CodeGenerator(C2Sema& sema_)
     , module(new llvm::Module(sema.pkgName, context))
     , builder(context)
 {
+    InitializeNativeTarget();
     // TEMP hardcode puts function
     std::vector<llvm::Type *> putsArgs;
     putsArgs.push_back(builder.getInt8Ty()->getPointerTo());
@@ -149,5 +156,30 @@ void CodeGenerator::generate() {
 
 void CodeGenerator::dump() {
     module->dump();
+}
+
+void CodeGenerator::runJIT() {
+    std::string errStr;
+    ExecutionEngine *EE = EngineBuilder(module).setErrorStr(&errStr).setEngineKind(EngineKind::JIT).create();
+    if (!EE) {
+        errs() << ": Failed to construct ExecutionEngine: " << errStr << "\n";
+        return;
+    }
+
+    if (verifyModule(*module)) {
+        errs() << "Error in Module!\n";
+        return;
+    }
+
+    llvm::Function* mainFunc = module->getFunction("main");
+    if (!mainFunc) {
+        errs() << "No main function found in Module " << sema.pkgName << "\n";
+        return;
+    }
+    // Just call main with 1 arg: int 1
+    std::vector<GenericValue> Args(1);
+    Args[0].IntVal = APInt(32, 1);
+    GenericValue RetVal = EE->runFunction(mainFunc, Args);
+    outs() << "main() returned: " << RetVal.IntVal << '\n';
 }
 

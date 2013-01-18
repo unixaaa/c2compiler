@@ -181,6 +181,8 @@ public:
         u_int64_t t2 = Utils::getCurrentTime();
         if (options.printTiming) printf(COL_TIME"IR generation took %lld usec"ANSI_NORMAL"\n", t2 - t1);
         codegen.dump();
+        printf("------ running JIT ------\n");
+        codegen.runJIT();
     }
 
     std::string filename;

@@ -2,7 +2,9 @@ package hello_world;
 
 use stdio local;
 
-public func int main(int argc, char*[] argv) {
+//func int main(int argc, char*[] argv) {
+// simplify proto for JIT runner
+public func int main(int argc) {
     printf("Hello World!\n");
     return 0;
 }
